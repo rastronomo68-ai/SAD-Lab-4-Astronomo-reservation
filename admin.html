@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Administrator Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Administrator Dashboard</h1>
+
+        <p id="welcomeMessage">
+            Welcome, Administrator!
+        </p>
+
+        <br>
+
+
+        <!-- RESERVATION SUMMARY -->
+
+        <div class="cards">
+
+            <div class="card">
+                <h2>Reservation Management</h2>
+
+                <p>
+                    Review and manage facility reservation requests.
+                </p>
+            </div>
+
+            <div class="card">
+
+                <h2 id="pendingCount">
+                    0
+                </h2>
+
+                <p>
+                    Pending Reservations
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- RESERVATIONS -->
+
+        <h2>
+            Reservation Requests
+        </h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Requester</th>
+                        <th>Facility</th>
+                        <th>Purpose</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="adminReservationsTable">
+
+                    <tr>
+                        <td colspan="7">
+                            Loading reservations...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <br>
+        <hr>
+        <br>
+
+
+        <!-- FACILITY MANAGEMENT -->
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>
+                    Facility Management
+                </h2>
+
+                <p>
+                    Add, edit, activate, or deactivate facilities.
+                </p>
+
+            </div>
+
+            <button
+                class="btn"
+                onclick="addFacility()"
+            >
+                + Add Facility
+            </button>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Facility</th>
+                        <th>Location</th>
+                        <th>Description</th>
+                        <th>Condition</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="facilitiesTable">
+
+                    <tr>
+                        <td colspan="6">
+                            Loading facilities...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <br>
+
+        <button
+            class="btn"
+            onclick="logout()"
+        >
+            Logout
+        </button>
+
+    </div>
+
+
+    <!-- SUPABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="supabase.js"></script>
+
+    <script src="admin.js"></script>
+
+</body>
+
+</html>

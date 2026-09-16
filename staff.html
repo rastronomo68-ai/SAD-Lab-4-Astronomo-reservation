@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Facility Staff Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Facility Staff Dashboard</h1>
+
+        <p id="welcomeMessage">
+            Welcome!
+        </p>
+
+        <br>
+
+        <div class="cards">
+
+            <div class="card">
+                <h2 id="approvedCount">0</h2>
+                <p>Approved Reservations</p>
+            </div>
+
+            <div class="card">
+                <h2 id="inUseCount">0</h2>
+                <p>Currently In Use</p>
+            </div>
+
+            <div class="card">
+                <h2 id="completedCount">0</h2>
+                <p>Completed</p>
+            </div>
+
+        </div>
+
+
+        <h2>Reservation Monitoring</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Requester</th>
+                        <th>Facility</th>
+                        <th>Purpose</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="staffReservationsTable">
+
+                    <tr>
+                        <td colspan="7">
+                            Loading reservations...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <br>
+
+        <button class="btn" onclick="logout()">
+            Logout
+        </button>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="supabase.js"></script>
+
+    <script src="staff.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Requester Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Requester Dashboard</h1>
+
+        <p id="welcomeMessage">
+            Welcome!
+        </p>
+
+        <br>
+
+        <!-- AVAILABLE FACILITIES -->
+
+        <h2>Available Facilities</h2>
+
+        <div id="facilitiesContainer" class="cards">
+            <p>Loading facilities...</p>
+        </div>
+
+
+        <!-- MY RESERVATIONS -->
+
+        <h2>My Reservations</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Facility</th>
+                        <th>Purpose</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="reservationsTable">
+
+                    <tr>
+                        <td colspan="6">
+                            Loading reservations...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <br>
+
+        <button class="btn" onclick="logout()">
+            Logout
+        </button>
+
+    </div>
+
+
+    <!-- ========================================
+         RESERVATION FORM
+    ======================================== -->
+
+    <div id="reservationModal" class="reservation-modal">
+
+        <div class="reservation-card">
+
+            <button
+                type="button"
+                class="close-modal"
+                onclick="closeReservationForm()"
+            >
+                ×
+            </button>
+
+
+            <div class="reservation-header">
+
+                <h2>Reserve Facility</h2>
+
+                <p>
+                    Fill in the details to request a reservation.
+                </p>
+
+            </div>
+
+
+            <form id="reservationForm">
+
+                <!-- FACILITY -->
+
+                <div class="reservation-form-group">
+
+                    <label for="selectedFacility">
+                        Facility
+                    </label>
+
+                    <input
+                        type="text"
+                        id="selectedFacility"
+                        readonly
+                    >
+
+                    <input
+                        type="hidden"
+                        id="selectedFacilityId"
+                    >
+
+                </div>
+
+
+                <!-- DATE -->
+
+                <div class="reservation-form-group">
+
+                    <label for="reservationDate">
+                        Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="reservationDate"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- TIME -->
+
+                <div class="reservation-time-row">
+
+                    <div class="reservation-form-group">
+
+                        <label for="startTime">
+                            Start Time
+                        </label>
+
+                        <select
+                            id="startTime"
+                            required
+                        >
+
+                            <option value="">
+                                Select start time
+                            </option>
+
+                            <option value="08:00">
+                                08:00 AM
+                            </option>
+
+                            <option value="08:30">
+                                08:30 AM
+                            </option>
+
+                            <option value="09:00">
+                                09:00 AM
+                            </option>
+
+                            <option value="09:30">
+                                09:30 AM
+                            </option>
+
+                            <option value="10:00">
+                                10:00 AM
+                            </option>
+
+                            <option value="10:30">
+                                10:30 AM
+                            </option>
+
+                            <option value="11:00">
+                                11:00 AM
+                            </option>
+
+                            <option value="11:30">
+                                11:30 AM
+                            </option>
+
+                            <option value="12:00">
+                                12:00 PM
+                            </option>
+
+                            <option value="12:30">
+                                12:30 PM
+                            </option>
+
+                            <option value="13:00">
+                                01:00 PM
+                            </option>
+
+                            <option value="13:30">
+                                01:30 PM
+                            </option>
+
+                            <option value="14:00">
+                                02:00 PM
+                            </option>
+
+                            <option value="14:30">
+                                02:30 PM
+                            </option>
+
+                            <option value="15:00">
+                                03:00 PM
+                            </option>
+
+                            <option value="15:30">
+                                03:30 PM
+                            </option>
+
+                            <option value="16:00">
+                                04:00 PM
+                            </option>
+
+                            <option value="16:30">
+                                04:30 PM
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="reservation-form-group">
+
+                        <label for="endTime">
+                            End Time
+                        </label>
+
+                        <select
+                            id="endTime"
+                            required
+                        >
+
+                            <option value="">
+                                Select end time
+                            </option>
+
+                            <option value="08:30">
+                                08:30 AM
+                            </option>
+
+                            <option value="09:00">
+                                09:00 AM
+                            </option>
+
+                            <option value="09:30">
+                                09:30 AM
+                            </option>
+
+                            <option value="10:00">
+                                10:00 AM
+                            </option>
+
+                            <option value="10:30">
+                                10:30 AM
+                            </option>
+
+                            <option value="11:00">
+                                11:00 AM
+                            </option>
+
+                            <option value="11:30">
+                                11:30 AM
+                            </option>
+
+                            <option value="12:00">
+                                12:00 PM
+                            </option>
+
+                            <option value="12:30">
+                                12:30 PM
+                            </option>
+
+                            <option value="13:00">
+                                01:00 PM
+                            </option>
+
+                            <option value="13:30">
+                                01:30 PM
+                            </option>
+
+                            <option value="14:00">
+                                02:00 PM
+                            </option>
+
+                            <option value="14:30">
+                                02:30 PM
+                            </option>
+
+                            <option value="15:00">
+                                03:00 PM
+                            </option>
+
+                            <option value="15:30">
+                                03:30 PM
+                            </option>
+
+                            <option value="16:00">
+                                04:00 PM
+                            </option>
+
+                            <option value="16:30">
+                                04:30 PM
+                            </option>
+
+                            <option value="17:00">
+                                05:00 PM
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PURPOSE -->
+
+                <div class="reservation-form-group">
+
+                    <label for="reservationPurpose">
+                        Purpose
+                    </label>
+
+                    <textarea
+                        id="reservationPurpose"
+                        rows="4"
+                        placeholder="Example: Student organization meeting"
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <!-- BUTTONS -->
+
+                <div class="reservation-actions">
+
+                    <button
+                        type="button"
+                        class="cancel-form-btn"
+                        onclick="closeReservationForm()"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="submit-reservation-btn"
+                    >
+                        Submit Reservation
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- SUPABASE -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="supabase.js"></script>
+
+    <script src="requester.js"></script>
+
+</body>
+
+</html>
