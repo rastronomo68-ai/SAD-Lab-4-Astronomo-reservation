@@ -68,38 +68,83 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Load available facilities
-    async function loadFacilities() {
+    
+async function loadReservations() {
 
-        const { data, error } = await supabaseClient
-            .from("facilities")
-            .select("id, facility_name, location, description, capacity, status")
-            .eq("status", "Available")
-            .order("facility_name");
+    const { data, error } = await supabaseClient
+        .from("reservations")
+        .select(`
+            id,
+            reservation_date,
+            purpose,
+            start_time,
+            end_time,
+            status,
+            facilities (
+                facility_name
+            )
+        `)
+        .eq("requester_id", currentUser.id)
+        .order("reservation_date", { ascending: false });
 
-        if (error) {
-            console.error("Facility loading error:", error);
-            alert("Unable to load facilities: " + error.message);
-            return;
+    if (error) {
+        console.error("Reservation loading error:", error);
+        console.error("Error details:", error.message);
+        return;
+    }
+
+    if (!reservationsTableBody) return;
+
+    reservationsTableBody.innerHTML = "";
+
+    if (!data || data.length === 0) {
+        reservationsTableBody.innerHTML =
+            '<tr><td colspan="7">No reservations found.</td></tr>';
+        return;
+    }
+
+    data.forEach(function (reservation) {
+
+        const row = document.createElement("tr");
+
+        const values = [
+            reservation.reservation_date || "",
+            reservation.facilities?.facility_name || "Unknown Facility",
+            reservation.purpose || "",
+            reservation.start_time || "",
+            reservation.end_time || "",
+            reservation.status || ""
+        ];
+
+        values.forEach(function (value) {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+
+        const actionCell = document.createElement("td");
+
+        if (reservation.status === "Pending") {
+
+            const cancelButton = document.createElement("button");
+
+            cancelButton.type = "button";
+            cancelButton.textContent = "Cancel";
+
+            cancelButton.addEventListener("click", function () {
+                cancelReservation(reservation.id);
+            });
+
+            actionCell.appendChild(cancelButton);
+
+        } else {
+            actionCell.textContent = "No action";
         }
 
-        if (!facilitySelect) return;
-
-        facilitySelect.innerHTML =
-            '<option value="">Select a facility</option>';
-
-        data.forEach(function (facility) {
-
-            const option = document.createElement("option");
-
-            option.value = facility.id;
-            option.textContent =
-                facility.facility_name +
-                " - Capacity: " +
-                facility.capacity;
-
-            facilitySelect.appendChild(option);
-        });
-    }
+        row.appendChild(actionCell);
+        reservationsTableBody.appendChild(row);
+    });
+}
 
     // Check facility availability
     async function checkFacilityAvailability(
