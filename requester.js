@@ -1,8 +1,4 @@
 
-/* ========================================
-   REQUESTER DASHBOARD
-======================================== */
-
 document.addEventListener("DOMContentLoaded", function () {
 
     const role = localStorage.getItem("userRole");
@@ -14,478 +10,263 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    document.getElementById("welcomeMessage").textContent =
-        "Welcome, " + (name || "Requester") + "!";
+    const welcomeMessage = document.getElementById("welcomeMessage");
 
-    loadFacilities();
-    loadReservations();
+    if (welcomeMessage) {
+        welcomeMessage.textContent = "Welcome, " + name + "!";
+    }
 
-    const reservationForm =
-        document.getElementById("reservationForm");
+    // Get HTML elements
+    const facilitySelect = document.getElementById("facilitySelect");
+    const reservationForm = document.getElementById("reservationForm");
+    const reservationDate = document.getElementById("reservationDate");
+    const startTimeInput = document.getElementById("startTime");
+    const endTimeInput = document.getElementById("endTime");
+    const purposeInput = document.getElementById("purpose");
 
-    reservationForm.addEventListener("submit", function (event) {
-        event.preventDefault();
-        submitReservationForm();
-    });
+    const reservationsTableBody =
+        document.getElementById("reservationsTableBody");
 
-    // Set minimum date to today using local date
-    const dateInput =
-        document.getElementById("reservationDate");
+    let currentUser = null;
 
-    dateInput.min = getLocalDate();
+    // Get current local date in YYYY-MM-DD format
+    function getLocalDate() {
+        const today = new Date();
 
-});
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
 
+        return `${year}-${month}-${day}`;
+    }
 
-/* ========================================
-   LOCAL DATE HELPER
-======================================== */
+    // Convert time to PostgreSQL TIME format
+    function formatTimeOnly(time) {
+        return time.length === 5 ? `${time}:00` : time;
+    }
 
-function getLocalDate() {
+    // Initialize page
+    async function initializePage() {
 
-    const now = new Date();
+        const { data: { user }, error } =
+            await supabaseClient.auth.getUser();
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+        if (error || !user) {
+            alert("Please log in again.");
+            window.location.href = "index.html";
+            return;
+        }
 
-    return `${year}-${month}-${day}`;
+        currentUser = user;
 
-}
+        if (reservationDate) {
+            reservationDate.min = getLocalDate();
+        }
 
+        await loadFacilities();
+        await loadReservations();
+    }
 
-/* ========================================
-   LOAD FACILITIES
-======================================== */
-
-async function loadFacilities() {
-
-    const container =
-        document.getElementById("facilitiesContainer");
-
-    container.innerHTML = "<p>Loading facilities...</p>";
-
-    try {
+    // Load available facilities
+    async function loadFacilities() {
 
         const { data, error } = await supabaseClient
             .from("facilities")
-            .select("*")
+            .select("id, facility_name, location, description, capacity, status")
             .eq("status", "Available")
             .order("facility_name");
 
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            container.innerHTML =
-                "<p>No facilities available.</p>";
+        if (error) {
+            console.error("Facility loading error:", error);
+            alert("Unable to load facilities: " + error.message);
             return;
         }
 
-        container.innerHTML = "";
+        if (!facilitySelect) return;
+
+        facilitySelect.innerHTML =
+            '<option value="">Select a facility</option>';
 
         data.forEach(function (facility) {
 
-            const card = document.createElement("div");
-            card.className = "card";
+            const option = document.createElement("option");
 
-            const title = document.createElement("h2");
-            title.textContent = facility.facility_name;
+            option.value = facility.id;
+            option.textContent =
+                facility.facility_name +
+                " - Capacity: " +
+                facility.capacity;
 
-            const location = document.createElement("p");
-            location.textContent =
-                "Location: " + (facility.location || "Not specified");
+            facilitySelect.appendChild(option);
+        });
+    }
 
-            const description = document.createElement("p");
-            description.textContent = facility.description || "";
+    // Check facility availability
+    async function checkFacilityAvailability(
+        facilityId,
+        selectedDate,
+        startTime,
+        endTime
+    ) {
 
-            const capacity = document.createElement("p");
-            capacity.textContent =
-                "Capacity: " + (facility.capacity || 0) + " persons";
+        const start = formatTimeOnly(startTime);
+        const end = formatTimeOnly(endTime);
 
-            const status = document.createElement("p");
-            status.textContent = "Status: " + facility.status;
+        const { data, error } = await supabaseClient
+            .from("reservations")
+            .select("id")
+            .eq("facility_id", facilityId)
+            .eq("reservation_date", selectedDate)
+            .in("status", [
+                "Pending",
+                "Approved",
+                "Scheduled",
+                "In Use"
+            ])
+            .lt("start_time", end)
+            .gt("end_time", start);
 
-            const reserveButton = document.createElement("button");
-            reserveButton.className = "btn";
-            reserveButton.textContent = "Reserve";
-
-            reserveButton.addEventListener("click", function () {
-                openReservationForm(
-                    facility.id,
-                    facility.facility_name
-                );
-            });
-
-            card.append(
-                title,
-                location,
-                description,
-                capacity,
-                status,
-                document.createElement("br"),
-                reserveButton
+        if (error) {
+            console.error("Availability check error:", error);
+            alert(
+                "Unable to check facility availability: " +
+                error.message
             );
+            return null;
+        }
 
-            container.appendChild(card);
-
-        });
-
-    } catch (error) {
-
-        console.error("Facilities error:", error);
-
-        container.innerHTML =
-            "<p>Unable to load facilities: " + error.message + "</p>";
-
+        return data.length === 0;
     }
 
-}
-
-
-/* ========================================
-   OPEN RESERVATION FORM
-======================================== */
-
-function openReservationForm(facilityId, facilityName) {
-
-    const form =
-        document.getElementById("reservationForm");
-
-    form.reset();
-
-    document.getElementById("selectedFacility").value =
-        facilityName;
-
-    document.getElementById("selectedFacilityId").value =
-        facilityId;
-
-    document.getElementById("reservationDate").min =
-        getLocalDate();
-
-    document.getElementById("reservationModal")
-        .classList.add("show");
-
-}
-
-
-/* ========================================
-   CLOSE RESERVATION FORM
-======================================== */
-
-function closeReservationForm() {
-
-    document.getElementById("reservationModal")
-        .classList.remove("show");
-
-}
-
-
-/* ========================================
-   SUBMIT RESERVATION FORM
-======================================== */
-
-async function submitReservationForm() {
-
-    const facilityId =
-        document.getElementById("selectedFacilityId").value;
-
-    const purpose =
-        document.getElementById("reservationPurpose").value.trim();
-
-    const selectedDate =
-        document.getElementById("reservationDate").value;
-
-    const startInput =
-        document.getElementById("startTime").value;
-
-    const endInput =
-        document.getElementById("endTime").value;
-
-
-    // Check required fields
-
-    if (
-        !facilityId ||
-        !purpose ||
-        !selectedDate ||
-        !startInput ||
-        !endInput
-    ) {
-        alert("Please complete all required fields.");
-        return;
-    }
-
-
-    // Validate date and time using local date/time
-
-    const selectedStart = new Date(
-        `${selectedDate}T${startInput}:00`
-    );
-
-    const selectedEnd = new Date(
-        `${selectedDate}T${endInput}:00`
-    );
-
-    if (
-        isNaN(selectedStart.getTime()) ||
-        isNaN(selectedEnd.getTime())
-    ) {
-        alert("Please select a valid date and time.");
-        return;
-    }
-
-    // Start must be earlier than end
-
-    if (selectedStart >= selectedEnd) {
-        alert("End time must be later than start time.");
-        return;
-    }
-
-    // Compare with current local date and time
-
-    const now = new Date();
-
-    if (selectedStart.getTime() <= now.getTime()) {
-        alert(
-            "Please select a future date and time.\n\n" +
-            "Current local time: " + now.toLocaleString()
-        );
-        return;
-    }
-
-    // Convert to ISO timestamps for Supabase
-
-    const startTime = selectedStart.toISOString();
-    const endTime = selectedEnd.toISOString();
-
-
-    /* ========================================
-       GET CURRENT USER
-    ======================================== */
-
-    const {
-        data: userData,
-        error: userError
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !userData || !userData.user) {
-
-        alert("You are not logged in.");
-
-        window.location.href = "index.html";
-
-        return;
-    }
-
-    const userId = userData.user.id;
-
-
-    /* ========================================
-       CHECK FACILITY
-    ======================================== */
-
-    const {
-        data: facility,
-        error: facilityError
-    } = await supabaseClient
-        .from("facilities")
-        .select("status")
-        .eq("id", facilityId)
-        .single();
-
-    if (facilityError) {
-
-        console.error(facilityError);
-
-        alert("Unable to check facility: " + facilityError.message);
-
-        return;
-    }
-
-    if (facility.status !== "Available") {
-
-        alert("This facility is currently unavailable.");
-
-        return;
-    }
-
-
-    /* ========================================
-       CHECK RESERVATION CONFLICT
-    ======================================== */
-
-    const {
-        data: conflicts,
-        error: conflictError
-    } = await supabaseClient
-        .from("reservations")
-        .select("id, start_time, end_time, status")
-        .eq("facility_id", facilityId)
-        .in("status", [
-            "Pending",
-            "Approved",
-            "Scheduled",
-            "In Use"
-        ])
-        .lt("start_time", endTime)
-        .gt("end_time", startTime);
-
-    if (conflictError) {
-
-        console.error(conflictError);
-
-        alert(
-            "Unable to check facility availability: " +
-            conflictError.message
-        );
-
-        return;
-    }
-
-    if (conflicts && conflicts.length > 0) {
-
-        alert(
-            "Sorry, this facility is already reserved during the selected time.\n\n" +
-            "Please choose another time or facility."
-        );
-
-        return;
-    }
-
-
-    /* ========================================
-       SAVE RESERVATION
-    ======================================== */
-
-    const { error } = await supabaseClient
-        .from("reservations")
-        .insert({
-
-            facility_id: facilityId,
-
-            requester_id: userId,
-
-            purpose: purpose,
-
-            start_time: startTime,
-
-            end_time: endTime,
-
-            status: "Pending"
-
-        });
-
-    if (error) {
-
-        console.error(error);
-
-        alert("Reservation failed: " + error.message);
-
-        return;
-    }
-
-    alert(
-        "Reservation submitted successfully!\n\n" +
-        "Status: Pending"
-    );
-
-    closeReservationForm();
-
-    document.getElementById("reservationForm").reset();
-
-    await loadReservations();
-
-}
-
-
-/* ========================================
-   LOAD RESERVATIONS
-======================================== */
-
-async function loadReservations() {
-
-    const table =
-        document.getElementById("reservationsTable");
-
-    table.innerHTML = `
-        <tr>
-            <td colspan="6">Loading reservations...</td>
-        </tr>
-    `;
-
-    try {
-
-        const {
-            data: userData,
-            error: userError
-        } = await supabaseClient.auth.getUser();
-
-        if (userError || !userData || !userData.user) {
-
-            window.location.href = "index.html";
-
+    // Submit reservation
+    async function submitReservation(event) {
+
+        event.preventDefault();
+
+        const facilityId = facilitySelect?.value;
+        const selectedDate = reservationDate?.value;
+        const startTime = startTimeInput?.value;
+        const endTime = endTimeInput?.value;
+        const purpose = purposeInput?.value.trim();
+
+        if (
+            !facilityId ||
+            !selectedDate ||
+            !startTime ||
+            !endTime ||
+            !purpose
+        ) {
+            alert("Please complete all reservation fields.");
             return;
         }
+
+        if (startTime >= endTime) {
+            alert("End time must be later than start time.");
+            return;
+        }
+
+        // Check if selected date is in the past
+        if (selectedDate < getLocalDate()) {
+            alert("Please select a future date.");
+            return;
+        }
+
+        // Check if selected date and time are in the future
+        const selectedStart = new Date(
+            `${selectedDate}T${startTime}:00`
+        );
+
+        if (selectedStart.getTime() <= Date.now()) {
+            alert("Please select a future date and time.");
+            return;
+        }
+
+        // Check availability
+        const available = await checkFacilityAvailability(
+            facilityId,
+            selectedDate,
+            startTime,
+            endTime
+        );
+
+        if (available === null) return;
+
+        if (!available) {
+            alert("This facility is already reserved during that time.");
+            return;
+        }
+
+        // Insert reservation
+        const { error } = await supabaseClient
+            .from("reservations")
+            .insert({
+                facility_id: facilityId,
+                requester_id: currentUser.id,
+                reservation_date: selectedDate,
+                purpose: purpose,
+                start_time: formatTimeOnly(startTime),
+                end_time: formatTimeOnly(endTime),
+                status: "Pending"
+            });
+
+        if (error) {
+            console.error("Reservation submission error:", error);
+            alert("Unable to submit reservation: " + error.message);
+            return;
+        }
+
+        alert("Reservation submitted successfully!");
+
+        reservationForm.reset();
+
+        if (reservationDate) {
+            reservationDate.min = getLocalDate();
+        }
+
+        await loadReservations();
+    }
+
+    // Load reservation history
+    async function loadReservations() {
 
         const { data, error } = await supabaseClient
             .from("reservation_details")
             .select("*")
-            .eq("requester_id", userData.user.id)
-            .order("start_time", {
-                ascending: false
-            });
+            .eq("requester_id", currentUser.id)
+            .order("start_time", { ascending: false });
 
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-
-            table.innerHTML = `
-                <tr>
-                    <td colspan="6">No reservations yet.</td>
-                </tr>
-            `;
-
+        if (error) {
+            console.error("Reservation loading error:", error);
+            alert("Unable to load reservations: " + error.message);
             return;
         }
 
-        table.innerHTML = "";
+        if (!reservationsTableBody) return;
+
+        reservationsTableBody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            reservationsTableBody.innerHTML =
+                '<tr><td colspan="7">No reservations found.</td></tr>';
+            return;
+        }
 
         data.forEach(function (reservation) {
 
             const row = document.createElement("tr");
 
             const values = [
-                reservation.facility_name || "-",
-                reservation.purpose || "-",
-                new Date(reservation.start_time).toLocaleString(),
-                new Date(reservation.end_time).toLocaleString(),
-                reservation.status || "-"
+                reservation.facility_name,
+                reservation.purpose,
+                reservation.start_time,
+                reservation.end_time,
+                reservation.status
             ];
 
-            values.forEach(function (value, index) {
-
+            values.forEach(function (value) {
                 const cell = document.createElement("td");
-
-                if (index === 4) {
-
-                    const badge = document.createElement("span");
-
-                    badge.className =
-                        "status-badge status-" +
-                        String(value).toLowerCase().replace(/\s+/g, "-");
-
-                    badge.textContent = value;
-
-                    cell.appendChild(badge);
-
-                } else {
-
-                    cell.textContent = value;
-
-                }
-
+                cell.textContent = value ?? "";
                 row.appendChild(cell);
-
             });
 
             const actionCell = document.createElement("td");
@@ -494,8 +275,8 @@ async function loadReservations() {
 
                 const cancelButton = document.createElement("button");
 
-                cancelButton.className = "cancel-btn";
                 cancelButton.textContent = "Cancel";
+                cancelButton.type = "button";
 
                 cancelButton.addEventListener("click", function () {
                     cancelReservation(reservation.id);
@@ -504,93 +285,81 @@ async function loadReservations() {
                 actionCell.appendChild(cancelButton);
 
             } else {
-
-                actionCell.textContent = "-";
-
+                actionCell.textContent = "No action";
             }
 
             row.appendChild(actionCell);
-
-            table.appendChild(row);
-
+            reservationsTableBody.appendChild(row);
         });
-
-    } catch (error) {
-
-        console.error("Reservations error:", error);
-
-        table.innerHTML = `
-            <tr>
-                <td colspan="6">
-                    Unable to load reservations: ${error.message}
-                </td>
-            </tr>
-        `;
-
     }
 
-}
+    // Cancel pending reservation
+    async function cancelReservation(reservationId) {
 
+        const confirmed = confirm(
+            "Are you sure you want to cancel this reservation?"
+        );
 
-/* ========================================
-   CANCEL RESERVATION
-======================================== */
+        if (!confirmed) return;
 
-async function cancelReservation(reservationId) {
+        const { error } = await supabaseClient
+            .from("reservations")
+            .update({ status: "Cancelled" })
+            .eq("id", reservationId)
+            .eq("requester_id", currentUser.id)
+            .eq("status", "Pending");
 
-    if (!confirm("Are you sure you want to cancel this reservation?")) {
-        return;
+        if (error) {
+            console.error("Cancellation error:", error);
+            alert("Unable to cancel reservation: " + error.message);
+            return;
+        }
+
+        alert("Reservation cancelled successfully!");
+
+        await loadReservations();
     }
 
-    const {
-        data: userData,
-        error: userError
-    } = await supabaseClient.auth.getUser();
+    // Logout
+    async function logout() {
 
-    if (userError || !userData || !userData.user) {
+        const confirmed = confirm("Are you sure you want to log out?");
 
-        alert("You are not logged in.");
+        if (!confirmed) return;
+
+        const { error } = await supabaseClient.auth.signOut();
+
+        if (error) {
+            alert("Logout failed: " + error.message);
+            return;
+        }
+
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("userName");
 
         window.location.href = "index.html";
-
-        return;
     }
 
-    const { error } = await supabaseClient
-        .from("reservations")
-        .update({
-            status: "Cancelled"
-        })
-        .eq("id", reservationId)
-        .eq("requester_id", userData.user.id)
-        .eq("status", "Pending");
-
-    if (error) {
-
-        console.error(error);
-
-        alert("Unable to cancel reservation: " + error.message);
-
-        return;
+    // Event listeners
+    if (reservationForm) {
+        reservationForm.addEventListener(
+            "submit",
+            submitReservation
+        );
     }
 
-    alert("Reservation cancelled.");
+    const logoutButton = document.getElementById("logoutButton");
 
-    await loadReservations();
+    if (logoutButton) {
+        logoutButton.addEventListener("click", logout);
+    }
 
-}
+    const refreshButton = document.getElementById("refreshButton");
 
+    if (refreshButton) {
+        refreshButton.addEventListener("click", loadReservations);
+    }
 
-/* ========================================
-   LOGOUT
-======================================== */
+    initializePage();
 
-async function logout() {
-
-    await supabaseClient.auth.signOut();
-
-    localStorage.clear();
-
-    window.location.href = "index.html";
-
-}
+});
